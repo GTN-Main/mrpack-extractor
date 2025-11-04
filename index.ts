@@ -30,7 +30,7 @@ console.log(mrpackPath);
 
 const zipPath = mrpackPath.replace('.mrpack', '.zip');
 
-fs.renameSync(mrpackPath, zipPath);
+fs.copyFileSync(mrpackPath, zipPath);
 
 console.log('File renamed to .zip successfully.');
 const folderPath = mrpackPath.replace('.mrpack', '');
@@ -67,23 +67,25 @@ createZipReader(zipPath)
 			files.forEach((file: any) => {
 				if (!file.downloads[0]) return;
 				const stream = fs.createWriteStream(`.minecraft/${file.path}`);
-				https.get(file.download, (response) => {
-					response.pipe(stream);
-					file.on('finish', () => {
-						file.close(() => {
-							console.log(
-								`File ${file.path.split('/').at(-1)} downloaded successfully`
-							);
-						});
-					}).on('error', (err: any) => {
-						fs.unlink(`./minecraft/${file.path}`, () => {
-							console.error(
-								`Error downloading file ${file.path.split('/').at(-1)}:`,
-								err
-							);
-						});
-					});
-				});
+				https.get(file.downloads[0], (response) => {
+                    response.pipe(stream);
+                    stream
+                        .on("finish", () => {
+                            stream.close(() => {
+                                console.log(
+                                    `File ${file.path.split("/").at(-1)} downloaded successfully`,
+                                );
+                            });
+                        })
+                        .on("error", (err: any) => {
+                            fs.unlink(`.minecraft/${file.path}`, () => {
+                                console.error(
+                                    `Error downloading file ${file.path.split("/").at(-1)}:`,
+                                    err,
+                                );
+                            });
+                        });
+                });
 			});
 			fs.unlinkSync(`${folderPath}/modrinth.index.json`);
 			if (!fs.existsSync(`${folderPath}/overrides/`))
