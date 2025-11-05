@@ -35,18 +35,12 @@ fs.copyFileSync(mrpackPath, zipPath);
 console.log('File renamed to .zip successfully.');
 const folderPath = mrpackPath.replace('.mrpack', '');
 
-function getDirectories(path: fs.PathLike) {
-	return fs.readdirSync(path).filter(function (file) {
-		return fs.statSync(path + '/' + file).isDirectory();
-	});
-}
-
 createZipReader(zipPath)
 	.extractAll(folderPath)
 	.then(async () => {
 		console.log('Extraction completed successfully.');
 		fs.unlinkSync(zipPath);
-		const directories = getDirectories(`${folderPath}/overrides`);
+		const directories = fs.readdirSync(`${folderPath}/overrides`);
 
 		directories.forEach((dir) => {
 			fs.mkdirSync('.minecraft', { recursive: true });
@@ -58,14 +52,15 @@ createZipReader(zipPath)
 
 		fs.rmdirSync(`${folderPath}/overrides/`);
 
-		console.log('Directories moved to out/ folder successfully.');
+		console.log('Files and directories moved to .minecraft/ folder successfully.');
 
         if (fs.existsSync(`${folderPath}/modrinth.index.json`)) {
 			const files = JSON.parse(
 				fs.readFileSync(`${folderPath}/modrinth.index.json`, 'utf-8')
 			).files;
 			files.forEach((file: any) => {
-				if (!file.downloads[0]) return;
+                if (!file.downloads[0]) return;
+                if (!fs.existsSync(`.minecraft/${file.path.split('/').slice(0, -1).join('/')}`)) fs.mkdirSync(`.minecraft/${file.path.split('/').slice(0, -1).join('/')}`, { recursive: true });
 				const stream = fs.createWriteStream(`.minecraft/${file.path}`);
 				https.get(file.downloads[0], (response) => {
                     response.pipe(stream);
